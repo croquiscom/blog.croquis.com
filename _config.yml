@@ -1,0 +1,9 @@
+exclude: []
+permalink: /:categories/:year/:month/:day/:title.html
+pygments: true
+
+markdown: rdiscount
+
+production_url : http://blog.croquis.com
+
+tags_path: /tags.html
