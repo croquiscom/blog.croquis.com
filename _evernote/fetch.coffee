@@ -80,6 +80,7 @@ getAllNotes = (callback) ->
   noteStore.findNotesMetadata filter, 0, 10000, result_spec, (error, response) ->
     return callback error if error
     notes = response.notes
+    notes = _.filter notes, (note) -> note.tagGuids?.length > 0
     async.forEachSeries notes, (note, next) ->
       return next null if seqNums[note.guid] is note.updateSequenceNum
       getNote note, (success) ->
