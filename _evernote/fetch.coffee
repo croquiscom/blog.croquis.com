@@ -48,11 +48,25 @@ uintArrayToHash = (array) ->
     str += c
   return str
 
+processMarkups = (content) ->
+  while (pos = content.indexOf 'http://markup.croquis.com')>=0
+    start = content.lastIndexOf '<a', pos
+    end = content.indexOf '</a>', pos
+    if start < 0 or end < 0
+      break
+    markup = content.substr(start, end-start+4)
+    markup = markup.replace /<[^>]*>/g, ''
+    content = content.substr(0, start) + markup + content.substr(end+4)
+  return content
+
 getNoteContent = (note, callback) ->
   console.log 'Get note: ' + note.title + ',' + note.guid + ':' + note.updateSequenceNum
   noteStore.getNote note.guid, true, false, false, false, (error, data) ->
     console.log 'getNoteContent: ' + JSON.stringify(error) if error
     content = data.content
+
+    content = processMarkups content
+
     medias = content.match(/<en-media.*?>(<\/en-media>)?/g) or []
     async.forEach medias, (media, callback) ->
       /hash="(.*?)"/.test media
