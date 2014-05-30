@@ -4,4 +4,6 @@ Sangmin Yoon
 Jungsoo Park
 {% elsif page.author == 'chudong.yeo' %}
 Chudong Yeo
+{% elsif page.author == 'jason.lee' %}
+Jason Lee
 {% endif %}
