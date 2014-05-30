@@ -9,6 +9,7 @@ mkdir -p ../assets/evernote
 coffee fetch.coffee
 
 git add ../_posts
+git add ../assets
 git commit -m 'update posts from Evernote'
 
 git push origin master

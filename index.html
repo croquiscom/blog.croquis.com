@@ -3,34 +3,28 @@
 
 <head>
   <title>Croquis Day</title>
+  <link rel='stylesheet' href='//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css'>
 </head>
 
 <body>
 
-<!--
-<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
--->
-<script>
-/*
-var timeout = setTimeout(function () {
-  window.location.replace('en');
-}, 1000);
-$.ajax({
-  url: "http://ajaxhttpheaders.appspot.com",
-  dataType: 'jsonp',
-  success: function(headers) {
-    clearTimeout(timeout);
-    var language = headers['Accept-Language'].substring(0,2);
-    if (language==='ko') {
-      window.location.replace('ko');
-    } else {
-      window.location.replace('en');
-    }
+<script type="text/javascript">
+  var language = (navigator.systemLanguage || navigator.language);
+  var redirection = 'en';
+  switch(language.slice(0,2)) {
+      case 'ko': redirection = 'ko'; break;
   }
-});
-*/
-window.location.replace('ko');
+  location.href = 'http://' + location.host + '/' + redirection + '/';
 </script>
+
+<noscript>
+  <div class='container'>
+    <div class='row'>
+      <a href='/en/' class='btn btn-primary'>English</a>
+      <a href='/ko/' class='btn btn-primary'>Korean</a>
+    </div>
+  </div>
+</noscript>
 
 </body>
 
