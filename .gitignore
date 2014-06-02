@@ -1,4 +1,11 @@
-_site
+# general
+Thumbs.db
 .DS_Store
+
+# jekyll
+_site
+
+# evernote fetch
 node_modules
 .evernote_cache
+.access_token

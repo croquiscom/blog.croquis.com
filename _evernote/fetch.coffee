@@ -6,7 +6,10 @@ slug = require 'slug'
 
 dir = "#{__dirname}/.evernote_cache"
 asset_dir = "#{__dirname}/../assets"
-oauthAccessToken = ''
+try
+  oauthAccessToken = fs.readFileSync('.access_token', 'utf-8').trim()
+catch
+  oauthAccessToken = ''
 notebookGuid = '8bc2be03-ae09-4ceb-9bfe-f9271ea96766'
 
 try fs.mkdirSync dir
@@ -211,6 +214,9 @@ writePost = (note, tags, meta, content) ->
   fs.writeFileSync filename, content
 
 getAllNotes (error, notes) ->
+  if error
+    console.log 'getAllNotes fail', error
+    return
   notes.sort (a, b) -> return a.created - b.created
   async.forEachSeries notes, (note, next) ->
     filename = "#{dir}/#{note.guid}:#{note.updateSequenceNum}.enml"
