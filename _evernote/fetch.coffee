@@ -17,6 +17,7 @@ try fs.mkdirSync dir
 
 seqNums = {}
 tags = {}
+en_links = {}
 
 updateSeqNum = (guid, seqNum) ->
   seqNums[guid] = seqNum if not seqNums[guid] or seqNums[guid] < seqNum
@@ -136,46 +137,20 @@ getTag = (tagGuid, callback) ->
     return callback null if error
     callback null, tags[tagGuid] = tag.name
 
-cutBeforeHR = (content) ->
-  return ['', content]
-#  hr_pos = content.indexOf '<hr/>'
-#  return ['', content] if hr_pos<0
-#
-#  elements = content.substr(0, hr_pos).split('<')[1..].reverse()
-#  elements_meta = []
-#  elements_content = []
-#  depth = 1
-#  all_meta = false
-#  for element in elements
-#    if element[0] is '/'
-#      depth++
-#    else
-#      depth--
-#    if all_meta or depth > 0
-#      elements_meta.push element
-#    else
-#      elements_content.push element
-#    all_meta = true if depth is 0
-#
-#  meta_str = '<'+elements_meta.reverse().join('<')
-#  content = '<'+elements_content.reverse().join('<') + content.substr(hr_pos+5)
-#
-#  return [meta_str, content]
-
-parseMeta = (meta_str) ->
-  meta = {}
-  meta_str = meta_str.replace /<[^>]*>/g, '\n'
-  for line in meta_str.split '\n'
-    if /(.*):(.*)/.test line
-      meta[RegExp.$1.trim()] = RegExp.$2.trim()
-  return meta
+replaceLinks = (content) ->
+  links = content.match(/evernote:\/\/\/view\/\w*\/\w*\/[a-z0-9-]*\/[a-z0-9-]*\//g) or []
+  links.forEach (link) ->
+    /([a-z0-9-]*)\/$/.test link
+    guid = RegExp.$1
+    if en_links[guid]
+      content = content.replace link, en_links[guid]
+  return content
 
 readNote = (filename) ->
   content = fs.readFileSync filename, 'utf-8'
   /<en-note.*?>([\s\S]*)<\/en-note>/.test content
-  [meta_str, content] = cutBeforeHR RegExp.$1
-  meta = parseMeta meta_str
-  return [meta, content]
+  content = replaceLinks RegExp.$1
+  return content
 
 datePad = (num) ->
   return '0' + num if num<10
@@ -204,7 +179,7 @@ romanize = (str) ->
     return ch
   return str
 
-writePost = (note, tags, meta, content) ->
+writePost = (note, tags, content) ->
   lang_tags = tags.filter (tag) -> tag.substr(0,5) is 'lang:'
   lang = lang_tags[0]?.substr 5
   return if not lang
@@ -225,28 +200,38 @@ writePost = (note, tags, meta, content) ->
   front.push ''
   content = front.join('\n') + content
 
-  url_path = meta.url_path or romanize note.title
-  url_path = slug url_path
-  url_path = url_path.replace /[*+~.()'"!:@]/g, ''
-
-  created = new Date(note.created)
   path = '../_posts/evernote'
-  date = "#{created.getFullYear()}-#{datePad created.getMonth()+1}-#{datePad created.getDate()}"
-  count = getCountForDate path, date
-  filename = "#{path}/#{date}-#{count}-#{url_path}.html"
+  filename = "#{path}/#{en_links[note.guid]}"
 
   fs.writeFileSync filename, content
+
+collectEnLinks = (notes) ->
+  prev_date = null
+  count = 0
+  for note in notes
+    created = new Date(note.created)
+    date = "#{created.getFullYear()}-#{datePad created.getMonth()+1}-#{datePad created.getDate()}"
+    if prev_date is date
+      count++
+    else
+      prev_date = date
+      count = 1
+    url_path = romanize note.title
+    url_path = slug url_path
+    url_path = url_path.replace /[*+~.()'"!:@]/g, ''
+    en_links[note.guid] = "#{date}-#{count}-#{url_path}.html"
 
 getAllNotes (error, notes) ->
   if error
     console.log 'getAllNotes fail', error
     return
   notes.sort (a, b) -> return a.created - b.created
+  collectEnLinks notes
   async.forEachSeries notes, (note, next) ->
     filename = "#{dir}/#{note.guid}:#{note.updateSequenceNum}.enml"
     return next null if not fs.existsSync filename
     async.map note.tagGuids, getTag, (error, tags) ->
-      [meta, content] = readNote filename
-      writePost note, tags, meta, content
+      content = readNote filename
+      writePost note, tags, content
       next null
   , (error) ->
