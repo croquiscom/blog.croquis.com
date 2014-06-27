@@ -2,6 +2,7 @@ _= require 'underscore'
 async = require 'async'
 {Evernote} = require 'evernote'
 fs = require 'fs'
+imagemagick = require 'imagemagick'
 slug = require 'slug'
 
 dir = "#{__dirname}/.evernote_cache"
@@ -35,10 +36,17 @@ getResource = (mime, guid, callback) ->
     when 'image/png' then '.png'
     when 'image/gif' then '.gif'
     else ''
+  path = "/evernote/#{guid}@2x#{ext}"
+  if fs.existsSync asset_dir + path
+    return callback null, path
   path = "/evernote/#{guid}#{ext}"
-  return callback null, path if fs.existsSync asset_dir + path
+  if fs.existsSync asset_dir + path
+    return callback null, path
   console.log 'Get resource: ' + guid
-  noteStore.getResource guid, true, false, false, false, (error, data) ->
+  noteStore.getResource guid, true, false, true, false, (error, data) ->
+    fileName = data.attributes?.fileName or ''
+    if /@2x/.test fileName
+      path = "/evernote/#{guid}@2x#{ext}"
     buffer = new Buffer data.data._body
     fs.writeFileSync asset_dir + path, buffer
     callback null, path
@@ -79,8 +87,14 @@ getNoteContent = (note, callback) ->
         return uintArrayToHash(r.data.bodyHash) is hash
       return callback null if not res
       getResource res.mime, res.guid, (error, path) ->
-        content = content.replace media, "<img src='{{ ASSET_PATH }}#{path}'>"
-        callback null
+        if /@2x/.test path
+          imagemagick.identify ['-format', '%w %h', asset_dir + path], (error, size) ->
+            [width, height] = size.split ' '
+            content = content.replace media, "<div style='max-width: #{width/2}px'><img src='{{ ASSET_PATH }}#{path}'></div>"
+            callback null
+        else
+          content = content.replace media, "<img src='{{ ASSET_PATH }}#{path}'>"
+          callback null
     , (error) ->
       callback content
 

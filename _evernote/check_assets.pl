@@ -8,7 +8,7 @@ foreach $post (@posts) {
   open INPUT, "<../_posts/evernote/$post";
   $content = join('', <INPUT>);
   close INPUT;
-  @matches = $content =~ /{{ ASSET_PATH }}\/evernote\/([a-z0-9-.]*)/g;
+  @matches = $content =~ /{{ ASSET_PATH }}\/evernote\/([a-z0-9-.@]*)/g;
   foreach $match (@matches) {
     @assets = grep { $_ ne $match } @assets;
   }
