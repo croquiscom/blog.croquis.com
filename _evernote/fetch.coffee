@@ -33,6 +33,7 @@ getResource = (mime, guid, callback) ->
   ext = switch mime
     when 'image/jpeg' then '.jpg'
     when 'image/png' then '.png'
+    when 'image/gif' then '.gif'
     else ''
   path = "/evernote/#{guid}#{ext}"
   return callback null, path if fs.existsSync asset_dir + path
