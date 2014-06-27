@@ -109,9 +109,18 @@ getNote = (note, callback) ->
 getAllNotes = (callback) ->
   filter = new Evernote.NoteFilter notebookGuid: notebookGuid
   result_spec = new Evernote.NotesMetadataResultSpec includeTitle: true, includeCreated: true, includeUpdated: true, includeUpdateSequenceNum: true, includeTagGuids: true
-  noteStore.findNotesMetadata filter, 0, 10000, result_spec, (error, response) ->
+  getList = (offset, callback) ->
+    noteStore.findNotesMetadata filter, offset, 250, result_spec, (error, response) ->
+      return callback error if error
+      if response.totalNotes - response.startIndex - response.notes.length > 0
+        getList response.startIndex + response.notes.length, (error, notes) ->
+          return callback error if error
+          [].push.apply notes, response.notes
+          callback null, notes
+      else
+        callback null, response.notes
+  getList 0, (error, notes) ->
     return callback error if error
-    notes = response.notes
     notes = _.filter notes, (note) -> note.tagGuids?.length > 0
     async.forEachSeries notes, (note, next) ->
       return next null if seqNums[note.guid] is note.updateSequenceNum
