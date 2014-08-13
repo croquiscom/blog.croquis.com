@@ -17,6 +17,7 @@ try fs.mkdirSync dir
 
 seqNums = {}
 tags = {}
+posts_filenames = {}
 en_links = {}
 
 updateSeqNum = (guid, seqNum) ->
@@ -138,9 +139,9 @@ getTag = (tagGuid, callback) ->
     callback null, tags[tagGuid] = tag.name
 
 replaceLinks = (content) ->
-  links = content.match(/evernote:\/\/\/view\/\w*\/\w*\/[a-z0-9-]*\/[a-z0-9-]*\//g) or []
+  links = content.match(/evernote:\/\/\/view\/\w*\/\w*\/[a-z0-9-]*\/[a-z0-9-]*\/[a-z0-9-]*/g) or []
   links.forEach (link) ->
-    /([a-z0-9-]*)\/$/.test link
+    /([a-z0-9-]*)\/[a-z0-9-]*$/.test link
     guid = RegExp.$1
     if en_links[guid]
       content = content.replace link, en_links[guid]
@@ -179,7 +180,8 @@ romanize = (str) ->
     return ch
   return str
 
-writePost = (note, tags, content) ->
+writePost = (note, content) ->
+  tags = note.tags
   lang_tags = tags.filter (tag) -> tag.substr(0,5) is 'lang:'
   lang = lang_tags[0]?.substr 5
   return if not lang
@@ -201,14 +203,18 @@ writePost = (note, tags, content) ->
   content = front.join('\n') + content
 
   path = '../_posts/evernote'
-  filename = "#{path}/#{en_links[note.guid]}"
+  filename = "#{path}/#{posts_filenames[note.guid]}"
 
   fs.writeFileSync filename, content
 
 collectEnLinks = (notes) ->
   prev_date = null
   count = 0
-  for note in notes
+  notes.forEach (note) ->
+    tags = note.tags
+    lang_tags = tags.filter (tag) -> tag.substr(0,5) is 'lang:'
+    lang = lang_tags[0]?.substr 5
+    return if not lang
     created = new Date(note.created)
     date = "#{created.getFullYear()}-#{datePad created.getMonth()+1}-#{datePad created.getDate()}"
     if prev_date is date
@@ -219,19 +225,21 @@ collectEnLinks = (notes) ->
     url_path = romanize note.title
     url_path = slug url_path
     url_path = url_path.replace /[*+~.()'"!:@]/g, ''
-    en_links[note.guid] = "#{date}-#{count}-#{url_path}.html"
+    posts_filenames[note.guid] = "#{date}-#{count}-#{url_path}.html"
+    en_links[note.guid] = "/#{lang}/#{created.getFullYear()}/#{datePad created.getMonth()+1}/#{datePad created.getDate()}/#{count}-#{url_path}.html"
 
 getAllNotes (error, notes) ->
   if error
     console.log 'getAllNotes fail', error
     return
   notes.sort (a, b) -> return a.created - b.created
-  collectEnLinks notes
   async.forEachSeries notes, (note, next) ->
-    filename = "#{dir}/#{note.guid}:#{note.updateSequenceNum}.enml"
-    return next null if not fs.existsSync filename
     async.map note.tagGuids, getTag, (error, tags) ->
-      content = readNote filename
-      writePost note, tags, content
+      note.tags = tags
       next null
-  , (error) ->
+  , ->
+    collectEnLinks notes
+    notes.forEach (note) ->
+      filename = "#{dir}/#{note.guid}:#{note.updateSequenceNum}.enml"
+      return if not fs.existsSync filename
+      writePost note, readNote filename
