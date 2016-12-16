@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Croquis Day</title>
+  <link rel='stylesheet' href='//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css'>
+</head>
+
+<body>
+
+<script type="text/javascript">
+  var language = (navigator.systemLanguage || navigator.language);
+  var redirection = 'en';
+  switch(language.slice(0,2)) {
+      case 'ko': redirection = 'ko'; break;
+  }
+  location.href = 'http://' + location.host + '/' + redirection + '/';
+</script>
+
+<noscript>
+  <div class='container'>
+    <div class='row'>
+      <a href='/en/' class='btn btn-primary'>English</a>
+      <a href='/ko/' class='btn btn-primary'>Korean</a>
+    </div>
+  </div>
+</noscript>
+
+</body>
+
+</html>
